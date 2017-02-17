@@ -92,11 +92,7 @@ function RAMLEmitter (data, typeName, singleDef=true) {
   this.emit = function () {
     this.processDefinitions()
     this.processMainData()
-    if (this.singleDef == true) {
-      return {'types': this.types}
-    } else {
-      return this.types
-    }
+    return this.types
   }
 
   /**
