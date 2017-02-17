@@ -24,6 +24,12 @@ function capitalize (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
+function underscoreToCamelCase (str) {
+  return str.split("_").map(function (val) {
+    return capitalize(val);
+  }).join("");
+}
+
 /**
  * Get RAML type name from $ref string.
  *
@@ -32,7 +38,7 @@ function capitalize (str) {
  */
 function typeNameFromRef (ref) {
   var name = ref.replace(/^.*[\\\/]/, '')
-  return capitalize(name)
+  return underscoreToCamelCase(name)
 }
 
 /**
@@ -49,5 +55,6 @@ function inferRAMLTypeName (fileName) {
 
 module.exports.updateObjWith = updateObjWith
 module.exports.capitalize = capitalize
+module.exports.underscoreToCamelCase = underscoreToCamelCase
 module.exports.typeNameFromRef = typeNameFromRef
 module.exports.inferRAMLTypeName = inferRAMLTypeName

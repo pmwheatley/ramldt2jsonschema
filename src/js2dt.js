@@ -20,14 +20,32 @@ var utils = require('./utils')
  * @param  {conversionCallback} cb - Callback to be called with converted value.
  */
 function js2dt (jsonData, typeName, cb) {
-  try {
-    var emitter = new RAMLEmitter(JSON.parse(jsonData), typeName)
-    var ramledData = emitter.emit()
-  } catch (error) {
-    cb(error, null)
-    return
+  if (typeName === undefined) {
+    try {
+      var data = JSON.parse(jsonData)
+      var types = {}
+      for (var key in data) {
+        if (key[0] != '$') {
+          var emitter = new RAMLEmitter(data[key], utils.underscoreToCamelCase(key), false)
+          types[utils.underscoreToCamelCase(key)] = emitter.emit()
+        }
+      }
+      var ramledData = types
+      cb(null, yaml.safeDump(ramledData, {'noRefs': true}))
+    } catch (error) {
+      cb(error, null)
+      return
+    }
+  } else {
+    try {
+      var emitter = new RAMLEmitter(JSON.parse(jsonData), typeName)
+      var ramledData = emitter.emit()
+    } catch (error) {
+      cb(error, null)
+      return
+    }
+    cb(null, yaml.safeDump(ramledData, {'noRefs': true}))
   }
-  cb(null, yaml.safeDump(ramledData, {'noRefs': true}))
 }
 
 /**
@@ -36,9 +54,10 @@ function js2dt (jsonData, typeName, cb) {
  * @param  {Object} data
  * @param  {string} typeName - Name of RAML data type to hold converted data.
  */
-function RAMLEmitter (data, typeName) {
+function RAMLEmitter (data, typeName, singleDef=true) {
   this.data = data
   this.mainTypeName = typeName
+  this.singleDef = singleDef
   this.types = {}
 
   /**
@@ -48,7 +67,11 @@ function RAMLEmitter (data, typeName) {
   this.processDefinitions = function () {
     var defsData = this.translateDefinitions(this.data.definitions)
     delete this.data.definitions
-    this.types = utils.updateObjWith(this.types, defsData)
+    if (this.singleDef == true) {
+      this.types[this.mainTypeName] = this.ramlForm(this.data, [])
+    } else {
+      this.types = utils.updateObjWith(this.types, defsData)
+    }
   }
 
   /**
@@ -56,7 +79,11 @@ function RAMLEmitter (data, typeName) {
    */
   this.processMainData = function () {
     delete this.data['$schema']
-    this.types[this.mainTypeName] = this.ramlForm(this.data, [])
+    if (this.singleDef == true) {
+      this.types[this.mainTypeName] = this.ramlForm(this.data, [])
+    } else {
+      this.types = this.ramlForm(this.data, [])
+    }
   }
 
   /**
@@ -65,7 +92,11 @@ function RAMLEmitter (data, typeName) {
   this.emit = function () {
     this.processDefinitions()
     this.processMainData()
-    return {'types': this.types}
+    if (this.singleDef == true) {
+      return {'types': this.types}
+    } else {
+      return this.types
+    }
   }
 
   /**
@@ -136,7 +167,7 @@ function RAMLEmitter (data, typeName) {
       return defsData
     }
     for (var key in defs) {
-      defsData[utils.capitalize(key)] = this.ramlForm(defs[key], [])
+      defsData[utils.underscoreToCamelCase(key)] = this.ramlForm(defs[key], [])
     }
     return defsData
   }
@@ -182,7 +213,7 @@ function RAMLEmitter (data, typeName) {
   }
 
   this.processCombinations = function (data, combsKey, prop) {
-    prop = prop ? utils.capitalize(prop) : this.mainTypeName
+    prop = prop ? utils.underscoreToCamelCase(prop) : this.mainTypeName
     var combSchemas = data[combsKey]
     var superTypes = []
     combSchemas.forEach(function (el, ind) {

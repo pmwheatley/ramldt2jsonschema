@@ -29,14 +29,11 @@ function writeToConsole (err, raml) {
  */
 function js2dtCLI (jsonFile, ramlTypeName) {
   var jsonData = fs.readFileSync(jsonFile).toString()
-  if (ramlTypeName === undefined) {
-    ramlTypeName = utils.inferRAMLTypeName(jsonFile)
-  }
   js2dt.js2dt(jsonData, ramlTypeName, writeToConsole)
 }
 
 program
-  .arguments('<jsonFile> <ramlTypeName>')
+  .arguments('<jsonFile> [ramlTypeName]')
   .description('Convert JSON schema to RAML Data Type. ' +
                'Writes to standard output.')
   .action(js2dtCLI)
